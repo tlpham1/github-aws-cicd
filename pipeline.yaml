@@ -12,6 +12,9 @@ Parameters:
     Type: String
     AllowedPattern: '[A-Za-z0-9-]+'
     Default: main
+  CodeBuildEnvironmentImage:
+    Type: String
+    Default: 'aws/codebuild/standard:4.0'
 Resources:
   CodeBuildServiceRole:
     Type: 'AWS::IAM::Role'
@@ -90,7 +93,64 @@ Resources:
       Environment:
         Type: LINUX_CONTAINER
         ComputeType: BUILD_GENERAL1_SMALL
-        Image: 'aws/codebuild/standard:4.0'
+        Image: !Ref CodeBuildEnvironmentImage
+  CodeBuildProjectDeployDev:
+    Type: 'AWS::CodeBuild::Project'
+    Properties:
+      Name: !Sub '${AWS::StackName}-deploy-dev'
+      ServiceRole: !GetAtt 
+        - CodeBuildServiceRole
+        - Arn
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: deployspec.yaml
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: !Ref CodeBuildEnvironmentImage
+        EnvironmentVariables:
+          - Name: ENV_NAME
+            Value: dev
+  CodeBuildProjectDeployQa:
+    Type: 'AWS::CodeBuild::Project'
+    Properties:
+      Name: !Sub '${AWS::StackName}-deploy-qa'
+      ServiceRole: !GetAtt 
+        - CodeBuildServiceRole
+        - Arn
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: deployspec.yaml
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: !Ref CodeBuildEnvironmentImage
+        EnvironmentVariables:
+          - Name: ENV_NAME
+            Value: qa
+  CodeBuildProjectDeployProd:
+    Type: 'AWS::CodeBuild::Project'
+    Properties:
+      Name: !Sub '${AWS::StackName}-deploy-prod'
+      ServiceRole: !GetAtt 
+        - CodeBuildServiceRole
+        - Arn
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: deployspec.yaml
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: !Ref CodeBuildEnvironmentImage
+        EnvironmentVariables:
+          - Name: ENV_NAME
+            Value: prod
   CodePipelineServiceRole:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -201,5 +261,52 @@ Resources:
                 ProjectName: !Ref CodeBuildProject
               OutputArtifacts:
                 - Name: BuildOutput
+              InputArtifacts:
+                - Name: SourceCode
+        - Name: Dev
+          Actions:
+            - Name: Deploy
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: '1'
+              Configuration:
+                ProjectName: !Ref CodeBuildProjectDeployDev
+              InputArtifacts:
+                - Name: SourceCode
+        - Name: Qa
+          Actions:
+            - Name: Deploy
+              RunOrder: 1
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: '1'
+              Configuration:
+                ProjectName: !Ref CodeBuildProjectDeployQa
+              InputArtifacts:
+                - Name: SourceCode
+            - Name: Approval
+              RunOrder: 2
+              ActionTypeId:
+                Category: Approval
+                Owner: AWS
+                Provider: Manual
+                Version: '1'
+              Configuration:
+                CustomData: Approve or Reject this change after running tests
+
+        - Name: Prod
+          Actions:
+            - Name: Deploy
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: '1'
+              Configuration:
+                ProjectName: !Ref CodeBuildProjectDeployProd
               InputArtifacts:
                 - Name: SourceCode
