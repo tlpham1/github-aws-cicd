@@ -1,0 +1,11 @@
+Hi There! Just in case you forgot how to do some terminal commands, here are some things that can help you out!
+
+- mvn spring-boot:run
+	- Runs the application
+	- Make sure you're in the same place as 'pom.xml' in the terminal before you run it
+- ctrl + c
+	- terminates the current job
+- docker build -t taxes .
+docker run -p 8080:8080 taxes:latest
+
+
