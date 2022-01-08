@@ -54,12 +54,7 @@ Resources:
                   - 's3:GetBucketLocation'
                 Resource:
                   - '*'
-              - Sid: CodeBuildPolicy
-                Action:
-                  - 'codebuild:BatchGetBuilds'
-                  - 'codebuild:StartBuild'
-                Resource: '*'
-                Effect: Allow
+
   CodeBuildSourceCredential:
     Type: 'AWS::CodeBuild::SourceCredential'
     Properties:
@@ -137,6 +132,12 @@ Resources:
                   - 's3:GetBucketLocation'
                 Resource:
                   - '*'
+              - Sid: CodeBuildPolicy
+                Action:
+                  - 'codebuild:BatchGetBuilds'
+                  - 'codebuild:StartBuild'
+                Resource: '*'
+                Effect: Allow
   CodePipelineArtifactStore:
     Type: 'AWS::S3::Bucket'
     Properties:
